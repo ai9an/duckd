@@ -19,7 +19,7 @@ duckd is a lightweight desktop audio manager. it provides global hotkey volume p
 
 ## download
 
-download the latest release from the [website](https://duckd.ai9an.com) or from the [releases](https://github.com/ai9an/duckd/releases/tag/v1) page.
+download the latest release from the [website](https://duckd.ai9an.com) or from the [releases](https://github.com/ai9an/duckd/releases/) page.
 
 ## local install
 
