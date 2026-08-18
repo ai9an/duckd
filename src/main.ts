@@ -219,7 +219,7 @@ class MainApplication {
   private renderShell(): void {
     root.innerHTML = `<div class="app-shell">
       <aside class="sidebar" aria-label="Primary navigation">
-        <div class="brand"><span class="brand-mark">d:</span><span>duckd</span></div>
+        <div class="brand"><span class="brand-mark">d<span class="brand-mark__signal">:</span></span><span>duckd</span></div>
         <nav class="nav-list">
           ${this.navButton("presets", "01", "Presets")}
           ${this.navButton("mixer", "02", "Mixer")}
@@ -232,7 +232,7 @@ class MainApplication {
           <div class="loading-state"><span></span><span></span><span></span></div>
         </div>
         <footer class="status-bar">
-          <span>duckd v0.1.0</span>
+          <span>duckd v1.1.0</span>
           <span id="footer-status">audio engine starting…</span>
         </footer>
       </main>
@@ -674,7 +674,7 @@ class HudApplication {
     document.documentElement.classList.add("hud-document");
     root.innerHTML = `<main class="hud-shell">
       <header class="hud-header" data-tauri-drag-region>
-        <div><span class="brand-mark">d:</span> quick mixer</div>
+        <div><span class="brand-mark">d<span class="brand-mark__signal">:</span></span> quick mixer</div>
         <div class="hud-header__actions"><span class="live-indicator"><i></i> live</span><button class="icon-button" id="close-hud" type="button" aria-label="Close HUD">×</button></div>
       </header>
       <section class="hud-content" id="hud-content"><div class="loading-state"><span></span><span></span><span></span></div></section>

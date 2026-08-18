@@ -17,17 +17,24 @@ const TERMINAL_LINES = [
   { text: "✓ preset applied", type: "result" },
 ];
 
-const primaryDownload = document.querySelector("#primaryDownload");
-const primaryDownloadLabel = primaryDownload.querySelector("span");
-const secondaryDownload = document.querySelector("#secondaryDownload");
-const isWindows = /Windows/i.test(navigator.userAgent);
-const primaryPlatform = isWindows ? "windows" : "linux";
-const secondaryPlatform = isWindows ? "linux" : "windows";
+function configureDownloads() {
+  const primaryDownload = document.querySelector("#primaryDownload");
+  const primaryDownloadLabel = primaryDownload?.querySelector("span");
+  const secondaryDownload = document.querySelector("#secondaryDownload");
 
-primaryDownload.href = DOWNLOADS[primaryPlatform].url;
-primaryDownloadLabel.textContent = DOWNLOADS[primaryPlatform].label;
-secondaryDownload.href = DOWNLOADS[secondaryPlatform].url;
-secondaryDownload.textContent = DOWNLOADS[secondaryPlatform].label;
+  // Keep the terminal demo independent from download-link markup. A stale
+  // cached page should not be able to stop the animation from initializing.
+  if (!primaryDownload || !primaryDownloadLabel || !secondaryDownload) return;
+
+  const isWindows = /Windows/i.test(navigator.userAgent);
+  const primaryPlatform = isWindows ? "windows" : "linux";
+  const secondaryPlatform = isWindows ? "linux" : "windows";
+
+  primaryDownload.href = DOWNLOADS[primaryPlatform].url;
+  primaryDownloadLabel.textContent = DOWNLOADS[primaryPlatform].label;
+  secondaryDownload.href = DOWNLOADS[secondaryPlatform].url;
+  secondaryDownload.textContent = DOWNLOADS[secondaryPlatform].label;
+}
 
 const terminalOutput = document.querySelector("#terminalOutput");
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -54,18 +61,18 @@ function showStaticTerminal() {
 }
 
 async function playTerminal(run) {
-  while (run === animationRun && !reducedMotion.matches) {
+  while (run === animationRun && !reducedMotion.matches && !document.hidden) {
     terminalOutput.replaceChildren();
 
     for (const line of TERMINAL_LINES) {
-      if (run !== animationRun || reducedMotion.matches) return;
+      if (run !== animationRun || reducedMotion.matches || document.hidden) return;
 
       const element = createTerminalLine(line);
       element.classList.add("is-active");
       const characterDelay = line.type === "command" ? 20 : 9;
 
       for (const character of line.text) {
-        if (run !== animationRun || reducedMotion.matches) return;
+        if (run !== animationRun || reducedMotion.matches || document.hidden) return;
         element.textContent += character;
         await wait(characterDelay);
       }
@@ -85,13 +92,25 @@ async function playTerminal(run) {
 function updateTerminalMotion() {
   animationRun += 1;
 
+  if (!terminalOutput) return;
+
   if (reducedMotion.matches) {
     showStaticTerminal();
     return;
   }
 
-  playTerminal(animationRun);
+  void playTerminal(animationRun);
 }
 
-reducedMotion.addEventListener?.("change", updateTerminalMotion);
-updateTerminalMotion();
+configureDownloads();
+
+if (terminalOutput) {
+  reducedMotion.addEventListener?.("change", updateTerminalMotion);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) updateTerminalMotion();
+  });
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) updateTerminalMotion();
+  });
+  updateTerminalMotion();
+}

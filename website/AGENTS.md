@@ -115,7 +115,7 @@ Implement as a simple JS typewriter (setTimeout/setInterval revealing characters
 Match the app itself, don't invent a new palette:
 - Same near-black background (`#0a0a0c`–`#121214` range) as the app UI.
 - Same monospace font (JetBrains Mono or Fira Code — whichever the app ended up using, keep them consistent).
-- One accent color, used for the primary download button, the terminal cursor, and links — nothing else competes with it.
+- Use the logo's cyan + orange pair with clear roles: cyan for links, live/active state, and the terminal cursor; orange for the primary download button, applied-result emphasis, and the `d:` colon. Keep both restrained against the near-black canvas.
 - Layout: hero (title, tagline, terminal demo, download button) → feature list (pull from the README's feature bullets) → screenshot gallery → footer with GitHub link.
 
 ## Screenshots

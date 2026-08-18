@@ -71,7 +71,7 @@ Use Tauri's `app_config_dir()` API rather than hardcoding these — the paths ab
 Terminal-inspired, not literally a terminal emulator:
 - Background: very dark, near-black (`#0a0a0c` – `#121214` range), not pure `#000`.
 - Font: monospace throughout — [JetBrains Mono](https://www.jetbrains.com/lp/mono/) or [Fira Code](https://github.com/tonsky/FiraCode) are good defaults, both free/open.
-- One accent color for active/selected state (sliders, active preset), everything else muted grays. Avoid a "gamer RGB" look — this should read as a tool, not a peripheral app.
+- Brand palette is cyan + orange on near-black: cyan for operational/active states (sliders, selection, live status), orange for primary actions and compact emphasis (hotkeys, section indices, the `d:` colon). Keep both restrained so this reads as a tool, not a "gamer RGB" peripheral app.
 - Full window: sidebar or tab layout for Presets / Mixer / Settings.
 - HUD popup: small, borderless, always-on-top, shows just the mixer sliders for currently-running apps, dismiss on click-away or hotkey again.
 - Customizability: Nearly all of this should be customizable to an extent in settings of the app

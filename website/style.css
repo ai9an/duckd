@@ -7,9 +7,12 @@
   --text: #e7e7e9;
   --muted: #95959f;
   --faint: #82828c;
-  --accent: #a8c76f;
-  --accent-hover: #bad77f;
-  --accent-soft: rgba(168, 199, 111, 0.12);
+  --accent: #2bc3d6;
+  --accent-hover: #58d5e3;
+  --accent-soft: rgba(43, 195, 214, 0.13);
+  --signal: #ffbd33;
+  --signal-hover: #ffd064;
+  --signal-soft: rgba(255, 189, 51, 0.12);
   color: var(--text);
   background: var(--bg);
   font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "Liberation Mono", monospace;
@@ -31,7 +34,8 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 50% 7%, rgba(168, 199, 111, 0.055), transparent 28rem),
+    radial-gradient(circle at 42% 7%, rgba(43, 195, 214, 0.06), transparent 26rem),
+    radial-gradient(circle at 62% 10%, rgba(255, 189, 51, 0.035), transparent 22rem),
     var(--bg);
   color: var(--text);
   font-size: 14px;
@@ -106,10 +110,15 @@ main,
   text-decoration: none;
 }
 
-.wordmark span,
-.site-footer > span span {
+.wordmark .wordmark-mark,
+.site-footer .wordmark-mark {
   margin-right: 2px;
   color: var(--accent);
+}
+
+.wordmark .wordmark-signal,
+.site-footer .wordmark-signal {
+  color: var(--signal);
 }
 
 .header-link {
@@ -140,7 +149,10 @@ main,
   text-transform: uppercase;
 }
 
-.eyebrow span,
+.eyebrow span {
+  color: var(--signal);
+}
+
 .section-index {
   color: var(--accent);
 }
@@ -207,6 +219,16 @@ h1 {
   border-radius: 50%;
 }
 
+.terminal-dots i:first-child {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.terminal-dots i:last-child {
+  border-color: var(--signal);
+  background: var(--signal-soft);
+}
+
 .terminal-state {
   justify-self: end;
 }
@@ -245,7 +267,7 @@ h1 {
 }
 
 .terminal-line--result {
-  color: var(--accent);
+  color: var(--signal);
 }
 
 .terminal-line.is-active::after {
@@ -280,11 +302,11 @@ h1 {
   min-width: 274px;
   min-height: 52px;
   padding: 13px 22px;
-  border: 1px solid #bedb89;
+  border: 1px solid #e4a829;
   border-radius: 4px;
-  color: #10120d;
-  background: var(--accent);
-  box-shadow: 0 8px 30px rgba(168, 199, 111, 0.12);
+  color: #181105;
+  background: var(--signal);
+  box-shadow: 0 8px 30px rgba(255, 189, 51, 0.13);
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
@@ -293,9 +315,9 @@ h1 {
 
 .download-button:hover {
   transform: translateY(-2px);
-  color: #10120d;
-  background: var(--accent-hover);
-  box-shadow: 0 12px 36px rgba(168, 199, 111, 0.18);
+  color: #181105;
+  background: var(--signal-hover);
+  box-shadow: 0 12px 36px rgba(255, 189, 51, 0.19);
 }
 
 .download-button svg {
@@ -369,6 +391,10 @@ h1 {
   margin-bottom: 48px;
   color: var(--accent);
   font-size: 9px;
+}
+
+.feature-grid article:nth-child(even) .feature-key {
+  color: var(--signal);
 }
 
 .feature-grid h3 {
@@ -514,10 +540,6 @@ h1 {
 
   .hero {
     padding: 64px 0 96px;
-  }
-
-  h1 br {
-    display: none;
   }
 
   .hero-copy {
