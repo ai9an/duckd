@@ -1,11 +1,11 @@
 const DOWNLOADS = {
   windows: {
     label: "Download for Windows",
-    url: "https://github.com/ai9an/duckd/releases/download/v1/duckd_1.0_x64-setup.exe",
+    url: "https://github.com/ai9an/duckd/releases/download/v1.1/duckd_1.1.0_x64-setup.exe",
   },
   linux: {
     label: "Download for Linux (AppImage)",
-    url: "https://github.com/ai9an/duckd/releases/download/v1/duckd_1.0_amd64.AppImage",
+    url: "https://github.com/ai9an/duckd/releases/download/v1.1/duckd_1.1.0_amd64.AppImage",
   },
 };
 
