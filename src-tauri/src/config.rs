@@ -288,6 +288,7 @@ fn save_to_path(path: &Path, config: &AppConfig) -> ConfigResult<()> {
             .open(&temporary_path)?;
         temporary.write_all(contents.as_bytes())?;
         temporary.sync_all()?;
+        drop(temporary);
         replace_config_file(&temporary_path, path)
     })();
 
@@ -311,6 +312,7 @@ fn replace_config_file(temporary_path: &Path, path: &Path) -> std::io::Result<()
 #[cfg(target_os = "windows")]
 fn replace_config_file(temporary_path: &Path, path: &Path) -> std::io::Result<()> {
     use std::{iter, os::windows::ffi::OsStrExt};
+    use std::{thread, time::Duration};
 
     use windows::{
         core::PCWSTR,
@@ -331,22 +333,37 @@ fn replace_config_file(temporary_path: &Path, path: &Path) -> std::io::Result<()
         .encode_wide()
         .chain(iter::once(0))
         .collect();
-    // SAFETY: both paths are valid, null-terminated UTF-16 buffers that live through the call.
-    let replaced = unsafe {
-        ReplaceFileW(
-            PCWSTR(destination.as_ptr()),
-            PCWSTR(replacement.as_ptr()),
-            PCWSTR::null(),
-            REPLACE_FILE_FLAGS(0),
-            None,
-            None,
-        )
-    };
-    if replaced.as_bool() {
-        Ok(())
-    } else {
-        Err(std::io::Error::last_os_error())
+    const ERROR_SHARING_VIOLATION: i32 = 32;
+    const MAX_REPLACE_ATTEMPTS: usize = 7;
+
+    for attempt in 0..MAX_REPLACE_ATTEMPTS {
+        // SAFETY: both paths are valid, null-terminated UTF-16 buffers that live through the call.
+        let replaced = unsafe {
+            ReplaceFileW(
+                PCWSTR(destination.as_ptr()),
+                PCWSTR(replacement.as_ptr()),
+                PCWSTR::null(),
+                REPLACE_FILE_FLAGS(0),
+                None,
+                None,
+            )
+        };
+        if replaced.as_bool() {
+            return Ok(());
+        }
+
+        let error = std::io::Error::last_os_error();
+        let can_retry = error.raw_os_error() == Some(ERROR_SHARING_VIOLATION)
+            && attempt + 1 < MAX_REPLACE_ATTEMPTS;
+        if !can_retry {
+            return Err(error);
+        }
+
+        let delay_ms = 20_u64.saturating_mul(1_u64 << attempt.min(3));
+        thread::sleep(Duration::from_millis(delay_ms));
     }
+
+    unreachable!("the replacement loop always returns")
 }
 
 #[cfg(test)]
@@ -432,5 +449,35 @@ mod tests {
         let imported = import_config_file(&path).expect("import config");
 
         assert_eq!(imported, config);
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn save_retries_a_transient_windows_sharing_violation() {
+        use std::{fs::OpenOptions, os::windows::fs::OpenOptionsExt, thread, time::Duration};
+
+        use windows::Win32::Storage::FileSystem::{FILE_SHARE_READ, FILE_SHARE_WRITE};
+
+        let directory = TestDirectory::new("sharing-violation");
+        let path = directory.config_path();
+        let store = ConfigStore::load_or_create(path.clone()).expect("create default config");
+        let blocker = OpenOptions::new()
+            .read(true)
+            .share_mode(FILE_SHARE_READ.0 | FILE_SHARE_WRITE.0)
+            .open(&path)
+            .expect("open config without delete sharing");
+        let release_blocker = thread::spawn(move || {
+            thread::sleep(Duration::from_millis(80));
+            drop(blocker);
+        });
+
+        let mut edited = store.get().expect("read config");
+        edited.general.run_in_tray = !edited.general.run_in_tray;
+        store
+            .replace(edited.clone())
+            .expect("save after sharing lock is released");
+        release_blocker.join().expect("release blocker thread");
+
+        assert_eq!(store.get().expect("read edited config"), edited);
     }
 }

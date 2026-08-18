@@ -3,7 +3,7 @@ use std::{
     path::Path,
     sync::{
         mpsc::{self, Sender, SyncSender},
-        Mutex, RwLock,
+        Mutex, OnceLock, RwLock,
     },
     thread,
     time::Duration,
@@ -219,6 +219,25 @@ pub struct PresetRuntime {
     edit_lock: Mutex<()>,
 }
 
+#[derive(Default)]
+pub struct PresetRuntimeState {
+    runtime: OnceLock<PresetRuntime>,
+}
+
+impl PresetRuntimeState {
+    fn runtime(&self) -> Result<&PresetRuntime, String> {
+        self.runtime
+            .get()
+            .ok_or_else(|| "duckd backend is still initializing".to_owned())
+    }
+
+    pub fn run_in_tray(&self) -> bool {
+        self.runtime()
+            .map(PresetRuntime::run_in_tray)
+            .unwrap_or(true)
+    }
+}
+
 impl PresetRuntime {
     pub fn initialize<R: Runtime>(app: &tauri::App<R>, config: ConfigStore) -> Result<(), String> {
         let audio = AudioWorker::start()?;
@@ -231,10 +250,11 @@ impl PresetRuntime {
             edit_lock: Mutex::new(()),
         };
 
-        if !app.manage(runtime) {
+        let state = app.state::<PresetRuntimeState>();
+        if state.runtime.set(runtime).is_err() {
             return Err("preset runtime was already initialized".to_owned());
         }
-        replace_hotkeys(&app.handle().clone(), &initial_config)?;
+        replace_hotkeys(&app.handle().clone(), state.runtime()?, &initial_config)?;
         Ok(())
     }
 
@@ -288,7 +308,14 @@ fn register_one<R: Runtime>(app: &AppHandle<R>, shortcut: Shortcut) -> Result<()
                 return;
             }
 
-            let state = app.state::<PresetRuntime>();
+            let managed_state = app.state::<PresetRuntimeState>();
+            let state = match managed_state.runtime() {
+                Ok(state) => state,
+                Err(error) => {
+                    eprintln!("duckd: ignored hotkey while starting: {error}");
+                    return;
+                }
+            };
             let action = match state.routes.read() {
                 Ok(routes) => routes.get(&shortcut.id()).cloned(),
                 Err(_) => {
@@ -379,9 +406,12 @@ fn toggle_hud<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
     Ok(())
 }
 
-fn replace_hotkeys<R: Runtime>(app: &AppHandle<R>, config: &AppConfig) -> Result<(), String> {
+fn replace_hotkeys<R: Runtime>(
+    app: &AppHandle<R>,
+    state: &PresetRuntime,
+    config: &AppConfig,
+) -> Result<(), String> {
     let next_routes = parsed_routes(config)?;
-    let state = app.state::<PresetRuntime>();
     let mut registered = state
         .registered_shortcuts
         .lock()
@@ -443,18 +473,24 @@ fn replace_hotkeys<R: Runtime>(app: &AppHandle<R>, config: &AppConfig) -> Result
 }
 
 #[tauri::command]
-pub fn get_config(state: State<'_, PresetRuntime>) -> Result<AppConfig, String> {
-    state.config.get().map_err(|error| error.to_string())
+pub fn get_config(state: State<'_, PresetRuntimeState>) -> Result<AppConfig, String> {
+    state
+        .runtime()?
+        .config
+        .get()
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
-pub fn get_config_path(state: State<'_, PresetRuntime>) -> String {
-    state.config.path().display().to_string()
+pub fn get_config_path(state: State<'_, PresetRuntimeState>) -> Result<String, String> {
+    Ok(state.runtime()?.config.path().display().to_string())
 }
 
 #[tauri::command]
-pub fn get_audio_capabilities(state: State<'_, PresetRuntime>) -> AudioCapabilities {
-    state.audio.capabilities
+pub fn get_audio_capabilities(
+    state: State<'_, PresetRuntimeState>,
+) -> Result<AudioCapabilities, String> {
+    Ok(state.runtime()?.audio.capabilities)
 }
 
 #[tauri::command]
@@ -466,10 +502,10 @@ pub async fn list_running_processes() -> Result<Vec<String>, String> {
 
 #[tauri::command]
 pub async fn list_audio_sessions(
-    state: State<'_, PresetRuntime>,
+    state: State<'_, PresetRuntimeState>,
     direction: AudioDirection,
 ) -> Result<Vec<AudioSession>, String> {
-    let audio = state.audio.clone();
+    let audio = state.runtime()?.audio.clone();
     tauri::async_runtime::spawn_blocking(move || audio.list_sessions(direction))
         .await
         .map_err(|error| format!("audio request task failed: {error}"))?
@@ -477,12 +513,12 @@ pub async fn list_audio_sessions(
 
 #[tauri::command]
 pub async fn set_application_volume(
-    state: State<'_, PresetRuntime>,
+    state: State<'_, PresetRuntimeState>,
     app: String,
     direction: AudioDirection,
     volume_percent: u8,
 ) -> Result<usize, String> {
-    let audio = state.audio.clone();
+    let audio = state.runtime()?.audio.clone();
     tauri::async_runtime::spawn_blocking(move || audio.set_volume(app, direction, volume_percent))
         .await
         .map_err(|error| format!("audio request task failed: {error}"))?
@@ -498,10 +534,10 @@ fn replace_runtime_config(
         .lock()
         .map_err(|_| "config edit lock was poisoned".to_owned())?;
     let previous = state.config.get().map_err(|error| error.to_string())?;
-    replace_hotkeys(app, &config)?;
+    replace_hotkeys(app, state, &config)?;
 
     if let Err(error) = state.config.replace(config) {
-        let rollback = replace_hotkeys(app, &previous);
+        let rollback = replace_hotkeys(app, state, &previous);
         return match rollback {
             Ok(()) => Err(error.to_string()),
             Err(rollback_error) => Err(format!(
@@ -516,26 +552,30 @@ fn replace_runtime_config(
 #[tauri::command]
 pub fn save_config(
     app: AppHandle,
-    state: State<'_, PresetRuntime>,
+    state: State<'_, PresetRuntimeState>,
     config: AppConfig,
 ) -> Result<(), String> {
-    replace_runtime_config(&app, &state, config)
+    replace_runtime_config(&app, state.runtime()?, config)
 }
 
 #[tauri::command]
 pub fn import_config(
     app: AppHandle,
-    state: State<'_, PresetRuntime>,
+    state: State<'_, PresetRuntimeState>,
     path: String,
 ) -> Result<AppConfig, String> {
     let config = import_config_file(Path::new(&path)).map_err(|error| error.to_string())?;
-    replace_runtime_config(&app, &state, config.clone())?;
+    replace_runtime_config(&app, state.runtime()?, config.clone())?;
     Ok(config)
 }
 
 #[tauri::command]
-pub fn export_config(state: State<'_, PresetRuntime>, path: String) -> Result<(), String> {
-    let config = state.config.get().map_err(|error| error.to_string())?;
+pub fn export_config(state: State<'_, PresetRuntimeState>, path: String) -> Result<(), String> {
+    let config = state
+        .runtime()?
+        .config
+        .get()
+        .map_err(|error| error.to_string())?;
     export_config_file(Path::new(&path), &config).map_err(|error| error.to_string())
 }
 
@@ -548,7 +588,7 @@ mod tests {
         config::{AppConfig, Preset, PresetTarget},
     };
 
-    use super::{apply_preset, parsed_routes, HotkeyAction};
+    use super::{apply_preset, parsed_routes, HotkeyAction, PresetRuntimeState};
 
     #[derive(Default)]
     struct FakeBackend {
@@ -581,6 +621,16 @@ mod tests {
                 _ => Ok(1),
             }
         }
+    }
+
+    #[test]
+    fn startup_state_reports_initialization_without_panicking() {
+        let state = PresetRuntimeState::default();
+
+        assert_eq!(
+            state.runtime().err().as_deref(),
+            Some("duckd backend is still initializing")
+        );
     }
 
     #[test]

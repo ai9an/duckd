@@ -10,6 +10,7 @@ mod presets;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
+        .manage(presets::PresetRuntimeState::default())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -28,7 +29,7 @@ pub fn run() {
             ("main", tauri::WindowEvent::CloseRequested { api, .. }) => {
                 use tauri::Manager;
 
-                let run_in_tray = window.state::<presets::PresetRuntime>().run_in_tray();
+                let run_in_tray = window.state::<presets::PresetRuntimeState>().run_in_tray();
                 if run_in_tray {
                     api.prevent_close();
                     if let Err(error) = window.hide() {

@@ -1,0 +1,54 @@
+[general]
+run_in_tray = true
+hud_hotkey = "Ctrl+Shift+Space"
+
+[[presets]]
+name = "lockin"
+hotkey = "Alt+3"
+default_volume = 75
+
+[[presets.targets]]
+app = "Discord.exe"
+volume = 20
+
+[[presets.targets]]
+app = "spotify"
+volume = 0
+
+[[presets.targets]]
+app = "waterfox.exe"
+volume = 0
+
+[[presets]]
+name = "music"
+hotkey = "Alt+2"
+default_volume = 38
+
+[[presets.targets]]
+app = "spotify"
+volume = 66
+
+[[presets.targets]]
+app = "Discord"
+volume = 70
+
+[[presets.targets]]
+app = "waterfox.exe"
+volume = 0
+
+[[presets]]
+name = "default"
+hotkey = "Alt+1"
+default_volume = 70
+
+[[presets.targets]]
+app = "spotify"
+volume = 40
+
+[[presets.targets]]
+app = "Discord.exe"
+volume = 100
+
+[[presets.targets]]
+app = "waterfox.exe"
+volume = 25

@@ -51,6 +51,32 @@ const escapeHtml = (value: unknown): string =>
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
+const BACKEND_INITIALIZING_MESSAGE = "duckd backend is still initializing";
+const BACKEND_STARTUP_ATTEMPTS = 50;
+const BACKEND_STARTUP_RETRY_MS = 50;
+
+const loadInitialBackendState = async (): Promise<
+  [AppConfig, AudioCapabilities, string]
+> => {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < BACKEND_STARTUP_ATTEMPTS; attempt += 1) {
+    try {
+      return await Promise.all([
+        getConfig(),
+        getAudioCapabilities(),
+        getConfigPath(),
+      ]);
+    } catch (error) {
+      if (!errorMessage(error).includes(BACKEND_INITIALIZING_MESSAGE)) throw error;
+      lastError = error;
+      await new Promise<void>((resolve) =>
+        window.setTimeout(resolve, BACKEND_STARTUP_RETRY_MS),
+      );
+    }
+  }
+  throw lastError ?? new Error("duckd backend did not finish initializing");
+};
+
 const cloneConfig = (config: AppConfig): AppConfig =>
   JSON.parse(JSON.stringify(config)) as AppConfig;
 
@@ -177,11 +203,8 @@ class MainApplication {
       await applyInterfaceScale().catch((error: unknown) => {
         console.warn("Could not apply interface scale", error);
       });
-      [this.config, this.capabilities, this.configPath] = await Promise.all([
-        getConfig(),
-        getAudioCapabilities(),
-        getConfigPath(),
-      ]);
+      [this.config, this.capabilities, this.configPath] =
+        await loadInitialBackendState();
       this.renderActiveTab();
       this.updateResidentStatus();
     } catch (error) {
