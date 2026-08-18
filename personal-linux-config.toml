@@ -1,0 +1,58 @@
+[general]
+run_in_tray = true
+hud_hotkey = "Ctrl+Shift+Space"
+
+[[presets]]
+name = "lockin"
+hotkey = "Alt+3"
+default_volume = 75
+
+[[presets.targets]]
+app = "vesktop.bin"
+volume = 20
+
+[[presets.targets]]
+app = "spotify"
+volume = 0
+
+[[presets.targets]]
+app = "firefox-bin"
+volume = 0
+
+[[presets]]
+name = "music"
+hotkey = "Alt+2"
+default_volume = 38
+
+[[presets.targets]]
+app = "spotify"
+volume = 55
+
+[[presets.targets]]
+app = "vesktop.bin"
+volume = 75
+
+[[presets.targets]]
+app = "firefox-bin"
+volume = 0
+
+[[presets]]
+name = "default"
+hotkey = "Alt+1"
+default_volume = 70
+
+[[presets.targets]]
+app = "vesktop.bin"
+volume = 75
+
+[[presets.targets]]
+app = "spotify"
+volume = 40
+
+[[presets.targets]]
+app = "firefox-bin"
+volume = 50
+
+[[presets.targets]]
+app = "steam.exe"
+volume = 100

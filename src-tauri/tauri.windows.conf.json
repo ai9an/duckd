@@ -1,0 +1,16 @@
+{
+  "bundle": {
+    "targets": ["msi", "nsis"],
+    "windows": {
+      "wix": {
+        "language": "en-US",
+        "upgradeCode": "f91a4697-175d-54f3-9b91-cfbf35ab23fc"
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["English"],
+        "installerIcon": "icons/icon.ico"
+      }
+    }
+  }
+}
